@@ -1,0 +1,7 @@
+simplify movement to 4 directions for now
+drop races for now
+make controls more intuitive
+add generation
+
+
+

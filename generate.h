@@ -1,1 +1,0 @@
-int generate(int min, int max);
