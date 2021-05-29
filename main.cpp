@@ -5,11 +5,10 @@
 
 int main(int argc, char *argv[])
 {
-    initscr();            // pdcurses starts in cbreak by default
-    keypad(stdscr, TRUE); // this lets special characters like F2 be interpreted
+    initscr(); // pdcurses starts in cbreak by default
     noecho();
-    curs_set(0); // hides cursor
-    World game(COLS * LINES, COLS, LINES);
+    curs_set(0);                           // hides cursor
+    World game(COLS * LINES, COLS, LINES); //curently map generates enough to fill basic terminal, no resizing support yet
     game.print();
     char input;
     while (true)
@@ -25,7 +24,7 @@ int main(int argc, char *argv[])
             move(0, 0);
             game.print();
             refresh();
-            napms(16);
+            napms(250);
             flushinp();
             break;
         }
