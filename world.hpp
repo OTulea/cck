@@ -9,15 +9,14 @@
 class World
 {
     unsigned cols;
-    unsigned rows;
-    std::vector<Cell> world;
-    std::vector<DisplayCell> map;
+    std::vector<Cell> worldModel;
+    Player player;
     // std::vector<GameObject> objects;
     // std::vector<GameObject> enemies;
-    GameObject player;
 
 public:
-    World(unsigned area, unsigned cols, unsigned rows);
+    World(unsigned area, unsigned cols);
+    void updateVisibility(int radius);
     void interact(GameObject &object, char d);
     void interact(char d);
     void print();

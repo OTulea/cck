@@ -5,16 +5,14 @@
 
 struct Cell
 {
+    char type = '.';
+    char contained = type;
+    bool seen = false;
+    bool visible = false;
     bool hasNo = false;
     bool hasEa = false;
     bool hasSo = false;
     bool hasWe = false;
-};
-
-struct DisplayCell
-{
-    char type = '.';
-    char overwrite = '.';
 };
 
 #endif
