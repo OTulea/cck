@@ -10,8 +10,24 @@ struct GameObject
 
 struct Player : public GameObject
 {
-    unsigned lightRadius = 8; // 5 6 8 look good
-    Player(char type, unsigned pos) : GameObject(type, pos) {}; //later move into cpp
+    unsigned lightRadius = 2;
+    unsigned fuel = 120;
+    unsigned rate = 0;
+    Player(char type, unsigned pos) : GameObject(type, pos){}; //later move into cpp
+    void adjustLight(unsigned level)
+    {
+        if (fuel >= level * level)
+        {
+            rate = level * level;
+            lightRadius = level ? level * 4 : 2;
+        }
+    }
+    void burn()
+    {
+        fuel = fuel <= rate ? 0 : fuel - rate;
+        if (!fuel)
+            adjustLight(0);
+    }
 };
 
 #endif
