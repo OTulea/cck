@@ -4,6 +4,16 @@
 #include "curses.h"
 
 #define COLOR_GREY COLOR_CYAN
+//TODO//
+// ignore resizing for now
+// change light mechanic so shadows work
+// add enemies
+// add rngeneration
+// add fuel pickups
+// figure out why the first input gets eaten
+// add fuel meter
+// look into colours
+// look into making diagonals and direction changing inputs possible
 
 int main()
 {
@@ -11,7 +21,7 @@ int main()
     initscr(); // pdcurses starts in cbreak by default
     noecho();
     curs_set(0);
-    start_color();
+    start_color(); // recompile curses with wide chars for more colours
     init_color(COLOR_GREY, 400, 400, 400);
     init_color(COLOR_BLACK, 0, 0, 0);
     init_pair(1, COLOR_BLACK, COLOR_BLACK);
@@ -19,12 +29,12 @@ int main()
     init_pair(3, COLOR_WHITE, COLOR_BLACK);
 
     // GAME SETUP
-    World game(COLS * LINES, COLS); //deal with resizing eventually
+    World game(COLS / 2 * LINES, COLS / 2); //deal with resizing eventually
     char input;
     while (true)
     {
         input = getch();
-        switch (input)
+        switch (input) // WHY DOES IT EAT THE FIRST INPUT;
         {
         case ('w'):
         case ('a'):

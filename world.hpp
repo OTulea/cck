@@ -11,8 +11,6 @@ class World
     unsigned cols;
     std::vector<Cell> worldModel;
     Player player;
-    // std::vector<GameObject> objects;
-    // std::vector<GameObject> enemies;
 
 public:
     World(unsigned area, unsigned cols);

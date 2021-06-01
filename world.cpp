@@ -33,7 +33,7 @@ void World::updateVisibility(int radius)
     {
         XDist = player.pos % cols - i % cols;
         YDist = player.pos / cols - i / cols;
-        worldModel[i].visible = square(abso(XDist)) + square(abso(YDist) + 2) < square(radius) ? true : false;
+        worldModel[i].visible = square(abso(XDist)) + square(abso(YDist)) < square(radius) ? true : false;
         worldModel[i].seen = worldModel[i].visible ? true : worldModel[i].seen;
     }
 }
@@ -61,17 +61,17 @@ void World::interact(char d)
 void World::print() //convert to just outputting a string so i can manage curses in main?
 {
     worldModel[player.pos].contained = player.type;
-    unsigned colourIndex;
     for (auto &elem : worldModel)
     {
         if (elem.visible)
-            colourIndex = 3;
+            attrset(COLOR_PAIR(3));
         else if (elem.seen)
-            colourIndex = 2;
+            attrset(COLOR_PAIR(2));
         else
-            colourIndex = 1;
-        attrset(COLOR_PAIR(colourIndex));
+            attrset(COLOR_PAIR(1));
         addch(elem.contained);
-        elem.contained = elem.type;
+        addch(' ');
+
+        elem.contained = elem.visible ? elem.type: elem.contained;
     }
 }
