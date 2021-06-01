@@ -14,6 +14,7 @@ class World
 
 public:
     World(unsigned area, unsigned cols);
+    void lightChange(char level);
     void updateVisibility(int radius);
     void interact(GameObject &object, char d);
     void interact(char d);

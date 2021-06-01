@@ -1,8 +1,9 @@
 #include <iostream>
 #include "world.hpp"
 #include "curses.h"
+#include "randInt.hpp"
 
-World::World(unsigned area, unsigned cols) : cols{cols}, worldModel(area, Cell()), player('@', 0)
+World::World(unsigned area, unsigned cols) : cols{cols}, worldModel(area, Cell()), player('@', randInt(0, worldModel.size()))
 {
     for (unsigned i = 0; i < area; ++i)
     {
@@ -15,10 +16,15 @@ World::World(unsigned area, unsigned cols) : cols{cols}, worldModel(area, Cell()
     print();
 }
 
-auto abso = [](int a)
+void World::lightChange(char level)
 {
-    return a < 0 ? -a : a;
-};
+    if (player.rate != level - 49 * level - 49)
+    {
+        player.adjustLight(level - 49);
+        updateVisibility(player.lightRadius);
+        print();
+    }
+}
 
 auto square = [](int a)
 {
@@ -33,7 +39,7 @@ void World::updateVisibility(int radius)
     {
         XDist = player.pos % cols - i % cols;
         YDist = player.pos / cols - i / cols;
-        worldModel[i].visible = square(abso(XDist)) + square(abso(YDist)) < square(radius) ? true : false;
+        worldModel[i].visible = square(XDist) + square(YDist) < square(radius) ? true : false;
         worldModel[i].seen = worldModel[i].visible ? true : worldModel[i].seen;
     }
 }
@@ -54,12 +60,15 @@ void World::interact(GameObject &object, char d)
 void World::interact(char d)
 {
     interact(player, d);
+    player.burn();
     updateVisibility(player.lightRadius);
     print();
 }
 
 void World::print() //convert to just outputting a string so i can manage curses in main?
 {
+    clear();
+    //move(0, 0);
     worldModel[player.pos].contained = player.type;
     for (auto &elem : worldModel)
     {
@@ -71,7 +80,16 @@ void World::print() //convert to just outputting a string so i can manage curses
             attrset(COLOR_PAIR(1));
         addch(elem.contained);
         addch(' ');
-
-        elem.contained = elem.visible ? elem.type: elem.contained;
+        elem.contained = elem.visible ? elem.type : elem.contained;
     }
+    unsigned index = 2;
+    for (unsigned i = 0; i < player.fuel; ++i)
+    {
+        if (player.rate && (!((player.fuel - i) % 4) || player.rate == 1))
+            index = i % (2 * player.rate) >= player.rate ? 4 : 3;
+
+        attrset(COLOR_PAIR(index));
+        addch(177);
+    }
+    refresh();
 }
