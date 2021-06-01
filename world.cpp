@@ -2,41 +2,76 @@
 #include "world.hpp"
 #include "curses.h"
 
-World::World(unsigned area, unsigned cols, unsigned rows) : cols{cols}, rows{rows}, world(area, Cell()), map(area, DisplayCell()), player{GameObject('@', 0)}
+World::World(unsigned area, unsigned cols) : cols{cols}, worldModel(area, Cell()), player('@', 0)
 {
     for (unsigned i = 0; i < area; ++i)
     {
-        world[i].hasNo = (i >= cols) ? true : false;
-        world[i].hasEa = (i % cols < cols - 1) ? true : false;
-        world[i].hasSo = (i < area - cols) ? true : false;
-        world[i].hasWe = (i % cols) ? true : false;
+        worldModel[i].hasNo = (i >= cols) ? true : false;
+        worldModel[i].hasEa = (i % cols < cols - 1) ? true : false;
+        worldModel[i].hasSo = (i < area - cols) ? true : false;
+        worldModel[i].hasWe = (i % cols) ? true : false;
+    }
+    updateVisibility(player.lightRadius);
+    print();
+}
+
+auto abso = [](int a)
+{
+    return a < 0 ? -a : a;
+};
+
+auto square = [](int a)
+{
+    return a * a;
+};
+
+void World::updateVisibility(int radius)
+{
+    int XDist;
+    int YDist;
+    for (auto i = 0; i < worldModel.size(); ++i)
+    {
+        XDist = player.pos % cols - i % cols;
+        YDist = player.pos / cols - i / cols;
+        worldModel[i].visible = square(abso(XDist)) + square(abso(YDist) + 2) < square(radius) ? true : false;
+        worldModel[i].seen = worldModel[i].visible ? true : worldModel[i].seen;
     }
 }
 
 void World::interact(GameObject &object, char d)
 {
     // this will eventually check if cell is empty
-    if (d == 'w' && world[object.pos].hasNo)
+    if (d == 'w' && worldModel[object.pos].hasNo)
         object.pos -= cols;
-    if (d == 'd' && world[object.pos].hasEa)
+    if (d == 'd' && worldModel[object.pos].hasEa)
         ++object.pos;
-    if (d == 's' && world[object.pos].hasSo)
+    if (d == 's' && worldModel[object.pos].hasSo)
         object.pos += cols;
-    if (d == 'a' && world[object.pos].hasWe)
+    if (d == 'a' && worldModel[object.pos].hasWe)
         --object.pos;
 }
 
 void World::interact(char d)
 {
-    interact(this->player, d);
+    interact(player, d);
+    updateVisibility(player.lightRadius);
+    print();
 }
 
-void World::print()
+void World::print() //convert to just outputting a string so i can manage curses in main?
 {
-    this->map[this->player.pos].overwrite = this->player.type;
-    for (unsigned i = 0; i < this->map.size(); ++i)
+    worldModel[player.pos].contained = player.type;
+    unsigned colourIndex;
+    for (auto &elem : worldModel)
     {
-        addch(this->map[i].overwrite);
-        this->map[i].overwrite = this->map[i].type;
+        if (elem.visible)
+            colourIndex = 3;
+        else if (elem.seen)
+            colourIndex = 2;
+        else
+            colourIndex = 1;
+        attrset(COLOR_PAIR(colourIndex));
+        addch(elem.contained);
+        elem.contained = elem.type;
     }
 }
