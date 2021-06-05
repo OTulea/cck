@@ -6,10 +6,18 @@
 #include "cell.hpp"
 #include "gameobject.hpp"
 
+// World Ideas: 
+// large map, distinct zones requiring different generators (caves & tunnels, ruins, forests)
+// have predefined features placed randomly, connected by generation
+// have enterable buildings with their own distinct maps
+// 
+//
+//
+
 class World
 {
     unsigned cols;
-    std::vector<Cell> worldModel;
+    std::vector<Cell> worldModel; //https://stackoverflow.com/questions/17259877/1d-or-2d-array-whats-faster
     Player player;
 
 public:

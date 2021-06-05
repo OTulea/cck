@@ -9,10 +9,10 @@ struct Cell
     char contained = type;
     bool seen = false;
     bool visible = false;
-    bool hasNo = false;
-    bool hasEa = false;
-    bool hasSo = false;
-    bool hasWe = false;
+    bool hasNo = true;
+    bool hasEa = true;
+    bool hasSo = true;
+    bool hasWe = true;
 };
 
 #endif

@@ -3,19 +3,16 @@
 #include "world.hpp"
 #include "curses.h"
 
-#define COLOR_GREY 1
+#define COLOR_GREY 65
 //TODO//
-// ignore resizing for now
 // change light mechanic so shadows work
 // add enemies
-// enemies potentially move diagonally as well
 // add rngeneration
 // add fuel pickups
-// figure out why the first input gets eaten
-// add fuel meter DONE
 // look into colours
-// look into making diagonals and direction changing inputs possible
 // add feedback for everything
+// gameplan is to escape 
+// whats my core gameplay?
 
 int main()
 {
@@ -34,10 +31,9 @@ int main()
     // GAME SETUP
     // WINDOWS TERMINAL is 120 by 30;
     World game(COLS / 2 * (LINES - 1), COLS / 2); //deal with resizing eventually
-    char input;
-    while (true)
+        while (true)
     {
-        input = getch(); //this blocks until input received
+        char input = getch(); //this blocks until input received
         switch (input)
         {
         case ('w'):

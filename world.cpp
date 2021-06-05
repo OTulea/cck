@@ -5,13 +5,14 @@
 
 World::World(unsigned area, unsigned cols) : cols{cols}, worldModel(area, Cell()), player('@', randInt(0, worldModel.size()))
 {
-    for (unsigned i = 0; i < area; ++i)
-    {
-        worldModel[i].hasNo = (i >= cols) ? true : false;
-        worldModel[i].hasEa = (i % cols < cols - 1) ? true : false;
-        worldModel[i].hasSo = (i < area - cols) ? true : false;
-        worldModel[i].hasWe = (i % cols) ? true : false;
-    }
+    for (unsigned i = 0; i < cols; ++i)
+        worldModel[i].hasNo = false;
+    for (unsigned i = cols - 1; i < area; i += cols)
+        worldModel[i].hasEa = false;
+    for (unsigned i = area - cols; i < area; ++i)
+        worldModel[i].hasSo = false;
+    for (unsigned i = 0; i <= area - cols; i += cols)
+        worldModel[i].hasWe = false;
     updateVisibility(player.lightRadius);
     print();
 }
@@ -31,14 +32,12 @@ auto square = [](int a)
     return a * a;
 };
 
-void World::updateVisibility(int radius)
+void World::updateVisibility(int radius) //add bounding box( max(0, pos -radius(cols+1)) to min(worldsize, pos + radius(col+1)) ))
 {
-    int XDist;
-    int YDist;
     for (auto i = 0; i < worldModel.size(); ++i)
     {
-        XDist = player.pos % cols - i % cols;
-        YDist = player.pos / cols - i / cols;
+        int XDist = player.pos % cols - i % cols;
+        int YDist = player.pos / cols - i / cols;
         worldModel[i].visible = square(XDist) + square(YDist) < square(radius) ? true : false;
         worldModel[i].seen = worldModel[i].visible ? true : worldModel[i].seen;
     }
@@ -68,7 +67,6 @@ void World::interact(char d)
 void World::print() //convert to just outputting a string so i can manage curses in main?
 {
     clear();
-    //move(0, 0);
     worldModel[player.pos].contained = player.type;
     for (auto &elem : worldModel)
     {
