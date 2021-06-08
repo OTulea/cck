@@ -1,36 +1,30 @@
-#include <iostream>
 #include "world.hpp"
 #include "curses.h"
-#include "randInt.hpp"
+#include "mytools.hpp"
 
-World::World(unsigned area, unsigned cols) : cols{cols}, worldModel(area, Cell()), player('@', randInt(0, worldModel.size()))
+World::World(int rows, int cols) : cols{cols}, worldModel(rows * cols, Cell()), player('@', 0)
 {
-    for (unsigned i = 0; i < cols; ++i)
+    for (auto i = 0; i < cols; ++i)
         worldModel[i].hasNo = false;
-    for (unsigned i = cols - 1; i < area; i += cols)
+    for (auto i = cols - 1; i < worldModel.size(); i += cols)
         worldModel[i].hasEa = false;
-    for (unsigned i = area - cols; i < area; ++i)
+    for (auto i = worldModel.size() - cols; i < worldModel.size(); ++i)
         worldModel[i].hasSo = false;
-    for (unsigned i = 0; i <= area - cols; i += cols)
+    for (auto i = 0; i <= worldModel.size() - cols; i += cols)
         worldModel[i].hasWe = false;
     updateVisibility(player.lightRadius);
     print();
 }
 
-void World::lightChange(char level)
+void World::changeLightLevel(int level)
 {
-    if (player.rate != level - 49 * level - 49)
+    if (player.rate != level * level)
     {
-        player.adjustLight(level - 49);
+        player.adjustLight(level);
         updateVisibility(player.lightRadius);
         print();
     }
 }
-
-auto square = [](int a)
-{
-    return a * a;
-};
 
 void World::updateVisibility(int radius) //add bounding box( max(0, pos -radius(cols+1)) to min(worldsize, pos + radius(col+1)) ))
 {
@@ -38,33 +32,35 @@ void World::updateVisibility(int radius) //add bounding box( max(0, pos -radius(
     {
         int XDist = player.pos % cols - i % cols;
         int YDist = player.pos / cols - i / cols;
-        worldModel[i].visible = square(XDist) + square(YDist) < square(radius) ? true : false;
+        worldModel[i].visible = tool::square(XDist) + tool::square(YDist) < tool::square(radius) ? true : false;
         worldModel[i].seen = worldModel[i].visible ? true : worldModel[i].seen;
     }
 }
 
-void World::interact(GameObject &object, char d)
+int World::posUpdate(int pos, char d)
 {
     // this will eventually check if cell is empty
-    if (d == 'w' && worldModel[object.pos].hasNo)
-        object.pos -= cols;
-    if (d == 'd' && worldModel[object.pos].hasEa)
-        ++object.pos;
-    if (d == 's' && worldModel[object.pos].hasSo)
-        object.pos += cols;
-    if (d == 'a' && worldModel[object.pos].hasWe)
-        --object.pos;
+    if (d == 'w' && worldModel[pos].hasNo)
+        return pos -= cols;
+    else if (d == 'd' && worldModel[pos].hasEa)
+        return ++pos;
+    else if (d == 's' && worldModel[pos].hasSo)
+        return pos += cols;
+    else if (worldModel[pos].hasWe)
+        return --pos;
+    else
+        return pos;
 }
 
-void World::interact(char d)
+void World::playerMove(char direc)
 {
-    interact(player, d);
+    posUpdate(player.pos, direc);
     player.burn();
     updateVisibility(player.lightRadius);
     print();
 }
 
-void World::print() //convert to just outputting a string so i can manage curses in main?
+void World::print()
 {
     clear();
     worldModel[player.pos].contained = player.type;
@@ -80,13 +76,10 @@ void World::print() //convert to just outputting a string so i can manage curses
         addch(' ');
         elem.contained = elem.visible ? elem.type : elem.contained;
     }
-    unsigned index = 2;
-    for (unsigned i = 0; i < player.fuel; ++i)
+    for (auto i = 0; i < player.fuel; ++i)
     {
         if (player.rate && (!((player.fuel - i) % 4) || player.rate == 1))
-            index = i % (2 * player.rate) >= player.rate ? 4 : 3;
-
-        attrset(COLOR_PAIR(index));
+            attrset(COLOR_PAIR(i % (2 * player.rate) >= player.rate ? 4 : 3));
         addch(177);
     }
     refresh();

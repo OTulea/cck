@@ -1,24 +1,26 @@
 #ifndef GAMEOBJECT
 #define GAMEOBJECT
 
+#include "mytools.hpp"
+
 struct GameObject
 {
     char type;
-    unsigned pos;
-    GameObject(char type, unsigned pos) : type{type}, pos{pos} {}; //later move into cpp
+    int pos;
+    GameObject(char type, int pos) : type{type}, pos{pos} {}; //later move into cpp
 };
 
 struct Player : public GameObject
 {
-    unsigned lightRadius = 2;
-    unsigned fuel = 120;
-    unsigned rate = 0;
-    Player(char type, unsigned pos) : GameObject(type, pos){}; //later move into cpp
-    void adjustLight(unsigned level)
+    int lightRadius = 2;
+    int fuel = 120;
+    int rate = 0;
+    Player(char type, int pos) : GameObject(type, pos){}; //later move into cpp
+    void adjustLight(int level)
     {
-        if (fuel >= level * level)
+        if (fuel >= tool::square(level))
         {
-            rate = level * level;
+            rate = tool::square(level);
             lightRadius = level ? level * 4 : 2;
         }
     }

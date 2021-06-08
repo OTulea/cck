@@ -1,5 +1,3 @@
-#include <vector>
-#include <iostream>
 #include "world.hpp"
 #include "curses.h"
 
@@ -13,6 +11,7 @@
 // add feedback for everything
 // gameplan is to escape 
 // whats my core gameplay?
+// look into style guides.
 
 int main()
 {
@@ -40,12 +39,12 @@ int main()
         case ('a'):
         case ('s'):
         case ('d'):
-            game.interact(input);
+            game.playerMove(input);
             break;
         case ('1'):
         case ('2'):
         case ('3'):
-            game.lightChange(input);
+            game.changeLightLevel('1' - 49);
             break;
         }
     }
