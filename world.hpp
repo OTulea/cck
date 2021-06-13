@@ -2,32 +2,37 @@
 #define WORLD
 
 #include <vector>
-#include "gameobject.hpp"
+
 struct Cell
 {
-    char type = '.';
-    char contained = type;
+    bool isFloor;
+    char contained;
     bool seen = false;
     bool visible = false;
-    bool hasNo = true;
-    bool hasEa = true;
-    bool hasSo = true;
-    bool hasWe = true;
+    Cell(bool isFloor) : isFloor{isFloor}, contained{isFloor ? '.' : '#'} {};
 };
 
 class World
 {
     int cols;
+    int lightRadius = 2;
+    int fuel = 120;
+    int rate = 0;
+    int playerPos;
     std::vector<Cell> worldModel; //https://stackoverflow.com/questions/17259877/1d-or-2d-array-whats-faster
-    Player player;
+    std::vector<int> cave;
+    bool ifisValid(int pos);
+    void advance(int pos, int direc);
+    bool posUpdate(int &pos, char direc);
+    void updateVisibility();
+    void print();
+    void spawnEnemies();
 
 public:
-    World(int rows, int cols);
-    void changeLightLevel(int level);
-    void updateVisibility(int radius);
-    void playerMove(char direc);
-    int posUpdate(int pos, char direc);
-    void print();
+    World(int cols, int rows);
+    void move(char direction);
+    void modifyLight(int level);
+    void rechargeLight();
 };
 
 #endif

@@ -1,69 +1,122 @@
-#include "world.hpp"
 #include "curses.h"
+#include "world.hpp"
 #include "mytools.hpp"
+#include "generation.hpp"
 
-World::World(int rows, int cols) : cols{cols}, worldModel(rows * cols, Cell()), player('@', 0)
+World::World(int cols, int rows) : cols{cols}
 {
-    for (auto i = 0; i < cols; ++i)
-        worldModel[i].hasNo = false;
-    for (auto i = cols - 1; i < worldModel.size(); i += cols)
-        worldModel[i].hasEa = false;
-    for (auto i = worldModel.size() - cols; i < worldModel.size(); ++i)
-        worldModel[i].hasSo = false;
-    for (auto i = 0; i <= worldModel.size() - cols; i += cols)
-        worldModel[i].hasWe = false;
-    updateVisibility(player.lightRadius);
+    Terrain terr = Terrain(cols, rows);
+    for (const auto &elem : terr.wmap)
+        worldModel.emplace_back(Cell(!elem.isWall));
+    cave = terr.largestcave;
+    playerPos = cave[randInt(0, cave.size() - 1)];
+    updateVisibility();
     print();
 }
 
-void World::changeLightLevel(int level)
+bool World::ifisValid(int pos)
 {
-    if (player.rate != level * level)
+    if (pos >= 0 && pos < worldModel.size() && square(pos % cols - playerPos % cols) + square(pos / cols - playerPos / cols) < square(lightRadius))
     {
-        player.adjustLight(level);
-        updateVisibility(player.lightRadius);
-        print();
+        worldModel[pos].visible = true;
+        if (worldModel[pos].isFloor)
+            return true;
+    }
+    return false;
+}
+
+void World::advance(int pos, int direc) // add checks for above or below centerpoint
+{
+    switch (direc)
+    {
+    case (0):
+        if (ifisValid(pos - cols))
+        {
+            advance(pos - cols, direc);
+            if (ifisValid(pos - cols - 1))
+                advance(pos - cols - 1, direc);
+            if (ifisValid(pos - cols + 1))
+                advance(pos - cols + 1, direc);
+        }
+        break;
+    case (1):
+        if (ifisValid(pos + 1))
+        {
+            advance(pos + 1, direc);
+            if (ifisValid(pos - cols + 1))
+                advance(pos - cols + 1, direc);
+            if (ifisValid(pos + cols + 1))
+                advance(pos + cols + 1, direc);
+        }
+        break;
+    case (2):
+        if (ifisValid(pos + cols))
+        {
+            advance(pos + cols, direc);
+            if (ifisValid(pos + cols - 1))
+                advance(pos + cols - 1, direc);
+            if (ifisValid(pos + cols + 1))
+                advance(pos + cols + 1, direc);
+        }
+        break;
+    case (3):
+        if (ifisValid(pos - 1))
+        {
+            advance(pos - 1, direc);
+            if (ifisValid(pos - cols - 1))
+                advance(pos - cols - 1, direc);
+            if (ifisValid(pos + cols - 1))
+                advance(pos + cols - 1, direc);
+        }
+        break;
     }
 }
 
-void World::updateVisibility(int radius) //add bounding box( max(0, pos -radius(cols+1)) to min(worldsize, pos + radius(col+1)) ))
-{
-    for (auto i = 0; i < worldModel.size(); ++i)
-    {
-        int XDist = player.pos % cols - i % cols;
-        int YDist = player.pos / cols - i / cols;
-        worldModel[i].visible = tool::square(XDist) + tool::square(YDist) < tool::square(radius) ? true : false;
-        worldModel[i].seen = worldModel[i].visible ? true : worldModel[i].seen;
-    }
-}
-
-int World::posUpdate(int pos, char d)
+bool World::posUpdate(int &pos, char d)
 {
     // this will eventually check if cell is empty
-    if (d == 'w' && worldModel[pos].hasNo)
-        return pos -= cols;
-    else if (d == 'd' && worldModel[pos].hasEa)
-        return ++pos;
-    else if (d == 's' && worldModel[pos].hasSo)
-        return pos += cols;
-    else if (worldModel[pos].hasWe)
-        return --pos;
-    else
-        return pos;
+    if (d == 'w' && worldModel[pos - cols].isFloor)
+    {
+        pos -= cols;
+        return true;
+    }
+    else if (d == 'd' && worldModel[pos + 1].isFloor)
+    {
+        ++pos;
+        return true;
+    }
+    else if (d == 's' && worldModel[pos + cols].isFloor)
+    {
+        pos += cols;
+        return true;
+    }
+    else if (d == 'a' && worldModel[pos - 1].isFloor)
+    {
+        --pos;
+        return true;
+    }
+    return false;
 }
 
-void World::playerMove(char direc)
+void World::updateVisibility() //add bounding box( max(0, pos -radius(cols+1)) to min(worldsize, pos + radius(col+1)) ))
 {
-    posUpdate(player.pos, direc);
-    player.burn();
-    updateVisibility(player.lightRadius);
-    print();
+    for (auto &elem : worldModel)
+        if (elem.visible)
+        {
+            elem.seen = true;
+            elem.visible = false;
+        }
+    worldModel[playerPos].visible = true;
+    advance(playerPos, 0);
+    advance(playerPos, 1);
+    advance(playerPos, 2);
+    advance(playerPos, 3);
 }
 
 void World::print()
 {
     clear();
-    worldModel[player.pos].contained = player.type;
+    worldModel[playerPos].contained = '@';
     for (auto &elem : worldModel)
     {
         if (elem.visible)
@@ -72,15 +125,54 @@ void World::print()
             attrset(COLOR_PAIR(2));
         else
             attrset(COLOR_PAIR(1));
+        // attrset(COLOR_PAIR(3));
         addch(elem.contained);
         addch(' ');
-        elem.contained = elem.visible ? elem.type : elem.contained;
+        elem.contained = elem.visible ? elem.isFloor ? '.' : '#' : elem.contained;
     }
-    for (auto i = 0; i < player.fuel; ++i)
+    auto index = 3;
+    for (auto i = 0; i < fuel; ++i)
     {
-        if (player.rate && (!((player.fuel - i) % 4) || player.rate == 1))
-            attrset(COLOR_PAIR(i % (2 * player.rate) >= player.rate ? 4 : 3));
+        if (rate && (!((fuel - i) % 4) || rate == 1))
+            index = i % (2 * rate) >= rate ? 4 : 3;
+
+        attrset(COLOR_PAIR(index));
         addch(177);
     }
     refresh();
+}
+
+void World::move(char direction)
+{
+    if (posUpdate(playerPos, direction))
+    {
+        fuel = fuel <= rate ? 0 : fuel - rate;
+        if (!fuel)
+        {
+            rate = 0;
+            lightRadius = 2;
+        }
+        updateVisibility();
+        print();
+    }
+}
+
+void World::modifyLight(int level)
+{
+    if (rate != square(level) && fuel >= square(level))
+    {
+        rate = square(level);
+        lightRadius = level ? level * 4 : 2;
+        updateVisibility();
+        print();
+    }
+}
+
+void World::rechargeLight()
+{
+    if (fuel != 120)
+    {
+        fuel = 120;
+        print();
+    }
 }
