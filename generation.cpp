@@ -11,7 +11,7 @@ Terrain::Terrain(int cols, int rows) : cols{cols}, area{rows * cols}, lowerMutab
         wmap[i].isMutable = false;
     for (int i = 0; i <= area - cols; i += cols)
         wmap[i].isMutable = false;
-    createCaves(42, 5, 4, 40, 55);
+    createCaves(42, 5, 4, 45, 55);
 }
 
 void Terrain::addNoise(int noiseRatio)

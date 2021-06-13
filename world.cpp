@@ -3,20 +3,11 @@
 #include "mytools.hpp"
 #include "generation.hpp"
 
-World::World(int cols, int rows) : cols{cols}
-{
-    Terrain terr = Terrain(cols, rows);
-    for (const auto &elem : terr.wmap)
-        worldModel.emplace_back(Cell(!elem.isWall));
-    cave = terr.largestcave;
-    playerPos = cave[randInt(0, cave.size() - 1)];
-    updateVisibility();
-    print();
-}
-
 bool World::ifisValid(int pos)
 {
-    if (pos >= 0 && pos < worldModel.size() && square(pos % cols - playerPos % cols) + square(pos / cols - playerPos / cols) < square(lightRadius))
+    int XDist = pos % cols - playerPos % cols;
+    int YDist = pos / cols - playerPos / cols;
+    if (pos >= 0 && pos < worldModel.size() && square(XDist) + square(YDist) < square(lightRadius))
     {
         worldModel[pos].visible = true;
         if (worldModel[pos].isFloor)
@@ -25,7 +16,7 @@ bool World::ifisValid(int pos)
     return false;
 }
 
-void World::advance(int pos, int direc) // add checks for above or below centerpoint
+void World::advance(int pos, int direc) // add checks for above or below centerpoint, add variable argument numebr support?
 {
     switch (direc)
     {
@@ -117,6 +108,9 @@ void World::print()
 {
     clear();
     worldModel[playerPos].contained = '@';
+    for (const auto &elem : enemies)
+        if (worldModel[elem].visible)
+            worldModel[elem].contained = 'G';
     for (auto &elem : worldModel)
     {
         if (elem.visible)
@@ -128,8 +122,10 @@ void World::print()
         // attrset(COLOR_PAIR(3));
         addch(elem.contained);
         addch(' ');
-        elem.contained = elem.visible ? elem.isFloor ? '.' : '#' : elem.contained;
+        elem.contained = elem.seen ? elem.contained : elem.isFloor ? '.'
+                                                                      : '#';
     }
+    worldModel[playerPos].contained = '.';
     auto index = 3;
     for (auto i = 0; i < fuel; ++i)
     {
@@ -142,6 +138,76 @@ void World::print()
     refresh();
 }
 
+bool World::tooClose(int pos)
+{
+    int XDist = abso(pos % cols - playerPos % cols);
+    int YDist = abso(pos / cols - playerPos / cols);
+    if (XDist + YDist < 10)
+        return true;
+    for (const auto &elem : enemies)
+    {
+        XDist = abso(pos % cols - elem % cols);
+        YDist = abso(pos / cols - elem / cols);
+        if (XDist + YDist < 3)
+            return true;
+    }
+    return false;
+}
+
+void World::spawnEnemies(int numEnemies)
+{
+    std::vector<int> possiblePostns = cave;
+    for (int i = 0; i < numEnemies; ++i)
+    {
+        int index = randInt(0, possiblePostns.size() - 1);
+        int tentativePos = possiblePostns[index];
+        while (possiblePostns.size() && tooClose(tentativePos))
+        {
+            possiblePostns.erase(possiblePostns.begin() + index);
+            index = randInt(0, possiblePostns.size() - 1);
+            tentativePos = possiblePostns[index];
+        }
+        enemies.push_back(tentativePos);
+    }
+};
+
+void World::iterate()
+{
+    for (auto &elem : enemies)
+    {
+        int direc = randInt(0, 3);
+        switch (direc)
+        {
+        case (0):
+            posUpdate(elem, 'w');
+            break;
+        case (1):
+            posUpdate(elem, 'a');
+            break;
+        case (2):
+            posUpdate(elem, 's');
+            break;
+        case (3):
+            posUpdate(elem, 'd');
+            break;
+        }
+    }
+}
+
+//Public
+
+World::World(int cols, int rows) : cols{cols}
+{
+    Terrain terr = Terrain(cols, rows);
+    for (const auto &elem : terr.wmap)
+        worldModel.emplace_back(Cell(!elem.isWall));
+    cave = terr.largestcave;
+    playerPos = cave[randInt(0, cave.size() - 1)];
+    spawnEnemies(100);
+    updateVisibility();
+    print();
+}
+
 void World::move(char direction)
 {
     if (posUpdate(playerPos, direction))
@@ -152,6 +218,7 @@ void World::move(char direction)
             rate = 0;
             lightRadius = 2;
         }
+        iterate();
         updateVisibility();
         print();
     }
@@ -173,6 +240,7 @@ void World::rechargeLight()
     if (fuel != 120)
     {
         fuel = 120;
+        iterate();
         print();
     }
 }
