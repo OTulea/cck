@@ -12,30 +12,34 @@ struct Cell
     Cell(bool isFloor) : isFloor{isFloor}, contained{isFloor ? '.' : '#'} {};
 };
 
+enum Direction
+{
+    North,
+    South,
+    East,
+    West
+};
+
 class World
 {
     int cols;
-    int lightRadius = 2;
-    int fuel = 120;
-    int rate = 0;
     int playerPos;
+    int viewXdim;
+    int viewYdim;
+    int viewportAnchor;
     std::vector<Cell> worldModel; //https://stackoverflow.com/questions/17259877/1d-or-2d-array-whats-faster
     std::vector<int> cave;
     std::vector<int> enemies;
-    bool ifisValid(int pos);
-    void advance(int pos, int direc);
-    bool posUpdate(int &pos, char direc);
-    void updateVisibility();
+    bool posUpdate(int &pos, Direction direc);
     void print();
     bool tooClose(int pos);
     void spawnEnemies(int numEnemies);
     void iterate();
+    void createViewport();
 
 public:
     World(int cols, int rows);
-    void move(char direction);
-    void modifyLight(int level);
-    void rechargeLight();
+    void move(Direction direc);
 };
 
 #endif

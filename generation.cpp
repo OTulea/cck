@@ -11,18 +11,14 @@ Terrain::Terrain(int cols, int rows) : cols{cols}, area{rows * cols}, lowerMutab
         wmap[i].isMutable = false;
     for (int i = 0; i <= area - cols; i += cols)
         wmap[i].isMutable = false;
-    createCaves(42, 5, 4, 45, 55);
+    createCaves(43, 1, 5, 4, 35, 50);
 }
 
 void Terrain::addNoise(int noiseRatio)
 {
     for (int i = lowerMutableBound; i < upperMutableBound; ++i)
-    {
-        int Xdist = abso(i % cols - cols / 2);
-        int Ydist = 2 * abso(i / cols - area / cols / 2);
-        if (wmap[i].isMutable && (randInt((Xdist + Ydist), 100) < noiseRatio - 20 || randInt(0, 100) < noiseRatio))
+        if (wmap[i].isMutable && randInt(0, 100) < noiseRatio)
             wmap[i].isWall = false;
-    }
 }
 
 void Terrain::iterateAutomata(int wallBreakpoint)
@@ -47,10 +43,10 @@ void Terrain::iterateAutomata(int wallBreakpoint)
                 ++numWallnghbrs;
             if (wmap[i + cols + 1].isWall)
                 ++numWallnghbrs;
-            wmap[i].newVal = numWallnghbrs > wallBreakpoint ? true : false;
+            wmap[i].newVal = numWallnghbrs > wallBreakpoint;
         }
-    for (auto &elem : wmap)
-        elem.isWall = elem.isMutable ? elem.newVal : elem.isWall;
+    for (int i = lowerMutableBound; i < upperMutableBound; ++i)
+        wmap[i].isWall = wmap[i].newVal;
 }
 
 void Terrain::fillDeadEnds(int smoothingBreakpoint)
@@ -98,12 +94,8 @@ void Terrain::visit(const int pos, std::vector<int> &store)
 void Terrain::flood(const int pos, std::vector<int> &store)
 {
     store.push_back(pos);
-    int numVisited = 0;
-    while (numVisited < store.size())
-    {
+    for (int numVisited = 0; numVisited < store.size(); ++numVisited)
         visit(store[numVisited], store);
-        ++numVisited;
-    }
 }
 
 bool Terrain::areUnvisited(int &curPos)
@@ -119,31 +111,25 @@ int Terrain::floodAllSmallerCaves()
     std::vector<int> max;
     std::vector<int> newvec;
     int curPos = lowerMutableBound;
-    while (wmap[curPos].isWall)
-        ++curPos;
-    flood(curPos, max);
+    if (areUnvisited(curPos))
+        flood(curPos, max);
     while (areUnvisited(curPos))
     {
         flood(curPos, newvec);
-        if (max.size() > newvec.size())
-            for (const int &elem : newvec)
-                wmap[elem].isWall = true;
-        else
-        {
-            for (const int &elem : max)
-                wmap[elem].isWall = true;
-            max = newvec;
-        }
+        for (const int &elem : max.size() > newvec.size() ? newvec : max)
+            wmap[elem].isWall = true;
+        max = max.size() > newvec.size() ? max : newvec;
         newvec.clear();
     }
     largestcave = max;
     return (max.size() * 100) / area;
 }
 
-void Terrain::createCaves(int noiseRatio, int wallBreakpoint, int smoothingBreakpoint, int lowerFloorRatio, int upperFloorRatio)
+void Terrain::createCaves(int noiseRatio, int iterations, int wallBreakpoint, int smoothingBreakpoint, int lowerFloorRatio, int upperFloorRatio)
 {
     addNoise(noiseRatio);
-    iterateAutomata(wallBreakpoint);
+    for (int i = 0; i < iterations; ++i)
+        iterateAutomata(wallBreakpoint);
     fillDeadEnds(smoothingBreakpoint);
     int floorRatio = floodAllSmallerCaves();
     if (floorRatio < lowerFloorRatio || floorRatio > upperFloorRatio)

@@ -23,11 +23,11 @@ inline int abso(int a)
 
 inline int max(int a, int b)
 {
-    return a < b ? b : a;
+    return a <= b ? b : a;
 }
 
 inline int min(int a, int b)
 {
-    return a < b ? a : b;
+    return a <= b ? a : b;
 }
 #endif

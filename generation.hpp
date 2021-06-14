@@ -15,7 +15,6 @@ struct basicCell
 struct Terrain
 {
     int cols;
-    int rows;
     int area;
     int lowerMutableBound;
     int upperMutableBound;
@@ -29,7 +28,7 @@ struct Terrain
     void flood(const int pos, std::vector<int> &store);
     bool areUnvisited(int &curPos);
     int floodAllSmallerCaves();
-    void createCaves(int noiseRatio, int wallBreakpoint, int smoothingBreakpoint, int lowerFloorRatio, int upperFloorRatio);
+    void createCaves(int noiseRatio, int iterations, int wallBreakpoint, int smoothingBreakpoint, int lowerFloorRatio, int upperFloorRatio);
 };
 
 #endif
