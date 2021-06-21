@@ -9,7 +9,7 @@ struct Cell
     char contained;
     bool seen = false;
     bool visible = false;
-    Cell(bool isFloor) : isFloor{isFloor}, contained{isFloor ? '.' : '#'} {};
+    Cell(bool isFloor);
 };
 
 enum Direction
@@ -24,22 +24,19 @@ class World
 {
     int cols;
     int playerPos;
-    int viewXdim;
-    int viewYdim;
+    bool oddColDim;
+    int viewportCols;
+    int viewportRows;
     int viewportAnchor;
     std::vector<Cell> worldModel; //https://stackoverflow.com/questions/17259877/1d-or-2d-array-whats-faster
     std::vector<int> cave;
-    std::vector<int> enemies;
     bool posUpdate(int &pos, Direction direc);
-    void print();
-    bool tooClose(int pos);
-    void spawnEnemies(int numEnemies);
-    void iterate();
-    void createViewport();
 
 public:
+    void print();
+    void viewDims(int doubleXdim, int Ydim);
     World(int cols, int rows);
-    void move(Direction direc);
+    void attemptMove(Direction direc);
 };
 
 #endif

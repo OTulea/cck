@@ -1,7 +1,7 @@
 #include "mytools.hpp"
 #include "generation.hpp"
 
-Terrain::Terrain(int cols, int rows) : cols{cols}, area{rows * cols}, lowerMutableBound{cols + 1}, upperMutableBound{area - cols - 1}, wmap(area, basicCell())
+Terrain::Terrain(int cols, int rows) : cols{cols}, area{rows * cols}, wmap(area, basicCell())
 {
     for (int i = 0; i < cols; ++i)
         wmap[i].isMutable = false;
@@ -16,66 +16,38 @@ Terrain::Terrain(int cols, int rows) : cols{cols}, area{rows * cols}, lowerMutab
 
 void Terrain::addNoise(int noiseRatio)
 {
-    for (int i = lowerMutableBound; i < upperMutableBound; ++i)
-        if (wmap[i].isMutable && randInt(0, 100) < noiseRatio)
-            wmap[i].isWall = false;
+    for (auto &elem : wmap)
+        elem.isWall = !elem.isMutable || randInt(1, 100) >= noiseRatio;
+}
+
+int Terrain::countNeighbours(int pos)
+{
+    return wmap[pos - cols - 1].isWall +
+           wmap[pos - cols].isWall +
+           wmap[pos - cols + 1].isWall +
+           wmap[pos - 1].isWall +
+           wmap[pos + 1].isWall +
+           wmap[pos + cols - 1].isWall +
+           wmap[pos + cols].isWall +
+           wmap[pos + cols + 1].isWall;
 }
 
 void Terrain::iterateAutomata(int wallBreakpoint)
 {
-    for (int i = lowerMutableBound; i < upperMutableBound; ++i)
+    for (int i = 0; i < area; ++i)
         if (wmap[i].isMutable)
-        {
-            int numWallnghbrs = 0;
-            if (wmap[i - cols - 1].isWall)
-                ++numWallnghbrs;
-            if (wmap[i - cols].isWall)
-                ++numWallnghbrs;
-            if (wmap[i - cols + 1].isWall)
-                ++numWallnghbrs;
-            if (wmap[i - 1].isWall)
-                ++numWallnghbrs;
-            if (wmap[i + 1].isWall)
-                ++numWallnghbrs;
-            if (wmap[i + cols - 1].isWall)
-                ++numWallnghbrs;
-            if (wmap[i + cols].isWall)
-                ++numWallnghbrs;
-            if (wmap[i + cols + 1].isWall)
-                ++numWallnghbrs;
-            wmap[i].newVal = numWallnghbrs > wallBreakpoint;
-        }
-    for (int i = lowerMutableBound; i < upperMutableBound; ++i)
-        wmap[i].isWall = wmap[i].newVal;
+            wmap[i].newVal = countNeighbours(i) > wallBreakpoint;
+    for (auto &elem : wmap)
+        elem.isWall = elem.newVal;
 }
 
 void Terrain::fillDeadEnds(int smoothingBreakpoint)
 {
-    for (int i = lowerMutableBound; i < upperMutableBound; ++i)
-        if (!wmap[i].isWall)
+    for (int i = 0; i < area; ++i)
+        if (!wmap[i].isWall && countNeighbours(i) > smoothingBreakpoint)
         {
-            int numWallnghbrs = 0;
-            if (wmap[i - cols - 1].isWall)
-                ++numWallnghbrs;
-            if (wmap[i - cols].isWall)
-                ++numWallnghbrs;
-            if (wmap[i - cols + 1].isWall)
-                ++numWallnghbrs;
-            if (wmap[i - 1].isWall)
-                ++numWallnghbrs;
-            if (wmap[i + 1].isWall)
-                ++numWallnghbrs;
-            if (wmap[i + cols - 1].isWall)
-                ++numWallnghbrs;
-            if (wmap[i + cols].isWall)
-                ++numWallnghbrs;
-            if (wmap[i + cols + 1].isWall)
-                ++numWallnghbrs;
-            if (numWallnghbrs > smoothingBreakpoint)
-            {
-                wmap[i].isWall = true;
-                i = i - cols - 2; // -2 because for loop will auto increment after this line, this sets to the earliest neighbour.
-            }
+            wmap[i].isWall = true;
+            i = i - cols - 2; // -2 because for loop will auto increment after this line, go to earliest neighbour that could be affected by above change
         }
 }
 
@@ -100,7 +72,7 @@ void Terrain::flood(const int pos, std::vector<int> &store)
 
 bool Terrain::areUnvisited(int &curPos)
 {
-    for (; curPos < upperMutableBound; ++curPos)
+    for (; curPos < area; ++curPos)
         if (!wmap[curPos].isWall && !wmap[curPos].wasVisited)
             return true;
     return false;
@@ -110,7 +82,7 @@ int Terrain::floodAllSmallerCaves()
 {
     std::vector<int> max;
     std::vector<int> newvec;
-    int curPos = lowerMutableBound;
+    int curPos = 0;
     if (areUnvisited(curPos))
         flood(curPos, max);
     while (areUnvisited(curPos))
@@ -132,6 +104,6 @@ void Terrain::createCaves(int noiseRatio, int iterations, int wallBreakpoint, in
         iterateAutomata(wallBreakpoint);
     fillDeadEnds(smoothingBreakpoint);
     int floorRatio = floodAllSmallerCaves();
-    if (floorRatio < lowerFloorRatio || floorRatio > upperFloorRatio)
+    if (floorRatio < lowerFloorRatio || floorRatio > upperFloorRatio) //switch random to combination to avoid bounds
         *this = Terrain(cols, area / cols);
 }

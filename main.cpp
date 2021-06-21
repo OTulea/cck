@@ -1,36 +1,43 @@
 #include "curses.h"
 #include "world.hpp"
 
-#define COLOR_GREY 65
-
 int main()
 {
     // CURSES SETUP
     initscr(); // pdcurses starts in cbreak by default
     noecho();
+    //halfdelay(1);
     curs_set(0);
     // GAME SETUP : WINDOWS TERMINAL is 120 by 30 base
-    World game(100, 100);
+    World game(500, 500);
     //GAME LOOP
     while (true)
     {
+        if (is_termresized())
+        {
+            curs_set(0);
+            resize_term(0, 0);
+            resize_window(stdscr, LINES, COLS);
+            game.viewDims(COLS, LINES);
+            game.print();
+        }
         char input = getch(); //this blocks until input received
         switch (input)
         {
         case ('w'):
-            game.move(Direction::North);
-            break;
-        case ('a'):
-            game.move(Direction::West);
-            break;
-        case ('s'):
-            game.move(Direction::South);
+            game.attemptMove(Direction::North);
             break;
         case ('d'):
-            game.move(Direction::East);
+            game.attemptMove(Direction::East);
+            break;
+        case ('s'):
+            game.attemptMove(Direction::South);
+            break;
+        case ('a'):
+            game.attemptMove(Direction::West);
             break;
         case ('r'):
-            game = World(100, 100); // THIS NEEDS a move constructor.
+            game = World(100, 100); // THIS NEEDS a move constructor. does it?
             break;
         case ('q'):
             return 0;

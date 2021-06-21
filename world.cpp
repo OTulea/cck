@@ -3,119 +3,69 @@
 #include "mytools.hpp"
 #include "generation.hpp"
 
-bool World::posUpdate(int &pos, Direction direc)
+Cell::Cell(bool isFloor) : isFloor{isFloor}, contained{isFloor ? '.' : '#'} {};
+
+void World::viewDims(int doubleXdim, int Ydim)
 {
-    // this will eventually check if cell is empty
-    if (direc == Direction::North && worldModel[pos - cols].isFloor)
-    {
-        pos -= cols;
-        return true;
-    }
-    else if (direc == Direction::East && worldModel[pos + 1].isFloor)
-    {
-        ++pos;
-        return true;
-    }
-    else if (direc == Direction::South && worldModel[pos + cols].isFloor)
-    {
-        pos += cols;
-        return true;
-    }
-    else if (direc == Direction::West && worldModel[pos - 1].isFloor)
-    {
-        --pos;
-        return true;
-    }
-    return false;
+    oddColDim = doubleXdim % 2;
+    viewportCols = doubleXdim / 2;
+    viewportRows = Ydim;
 }
 
-void World::createViewport()
+bool World::posUpdate(int &pos, Direction direc) // this will eventually check if cell is empty
 {
-    int xOff = min(max(0, playerPos % cols - (viewXdim - 1) / 2), cols - viewXdim);
-    int yOff = min(max(0, playerPos / cols - (viewYdim - 1) / 2), worldModel.size() / cols - viewYdim);
-    viewportAnchor = xOff + yOff * cols;
+    if (direc == Direction::North && worldModel[pos - cols].isFloor)
+        return pos -= cols;
+    else if (direc == Direction::East && worldModel[pos + 1].isFloor)
+        return ++pos;
+    else if (direc == Direction::South && worldModel[pos + cols].isFloor)
+        return pos += cols;
+    else if (direc == Direction::West && worldModel[pos - 1].isFloor)
+        return --pos;
+    return false;
 }
 
 void World::print()
 {
     clear();
     worldModel[playerPos].contained = '@';
-    for (const auto &elem : enemies)
-        worldModel[elem].contained = 'G';
-    for (int i = 0; i < viewYdim; ++i)
-        for (int j = 0; j < viewXdim; ++j)
+    int xOff = (viewportCols - 1) / 2 - (playerPos % cols);
+    int yOff = (viewportRows - 1) / 2 - (playerPos / cols);
+    for (int i = 0; i < viewportRows; ++i)
+    {
+        for (int j = 0; j < viewportCols; ++j)
         {
-            int index = viewportAnchor + i * cols + j;
-            addch(worldModel[index].contained);
+            if (i - yOff >= 0 && i - yOff < worldModel.size() / cols && j - xOff >= 0 && j - xOff < cols)
+            {
+                addch(worldModel[(i - yOff) * cols + (j - xOff)].contained);
+                worldModel[(i - yOff) * cols + (j - xOff)].contained = worldModel[(i - yOff) * cols + (j - xOff)].isFloor ? '.' : '#';
+            }
+            else
+                addch(' ');
             addch(' ');
-            worldModel[index].contained = worldModel[index].isFloor ? '.' : '#';
         }
+        if (oddColDim)
+            addch(' ');
+    }
     refresh();
 }
 
-bool World::tooClose(int pos)
-{
-    int XDist = abso(pos % cols - playerPos % cols);
-    int YDist = abso(pos / cols - playerPos / cols);
-    if (XDist + YDist < 10)
-        return true;
-    for (const auto &elem : enemies)
-    {
-        XDist = abso(pos % cols - elem % cols);
-        YDist = abso(pos / cols - elem / cols);
-        if (XDist + YDist < 3)
-            return true;
-    }
-    return false;
-}
-
-void World::spawnEnemies(int numEnemies)
-{
-    std::vector<int> possiblePostns = cave;
-    for (int i = 0; i < numEnemies; ++i)
-    {
-        int index = randInt(0, possiblePostns.size() - 1);
-        int tentativePos = possiblePostns[index];
-        while (possiblePostns.size() && tooClose(tentativePos))
-        {
-            possiblePostns.erase(possiblePostns.begin() + index);
-            index = randInt(0, possiblePostns.size() - 1);
-            tentativePos = possiblePostns[index];
-        }
-        enemies.push_back(tentativePos);
-    }
-};
-
-void World::iterate()
-{
-    for (auto &elem : enemies)
-    {
-        int direc = randInt(0, 3);
-        while (!posUpdate(elem, Direction(direc)))
-            direc = randInt(0, 3);
-    }
-    print();
-}
-
 //Public
-World::World(int cols, int rows) : cols{cols}, viewXdim{60}, viewYdim{29}
+World::World(int cols, int rows) : cols{cols}
 {
     Terrain terr = Terrain(cols, rows);
     for (const auto &elem : terr.wmap)
         worldModel.emplace_back(Cell(!elem.isWall));
     cave = terr.largestcave;
     playerPos = cave[randInt(0, cave.size() - 1)];
-    createViewport();
-    spawnEnemies(15);
+    viewDims(120, 30);
     print();
 }
 
-void World::move(Direction direc)
+void World::attemptMove(Direction direc)
 {
     if (posUpdate(playerPos, direc))
     {
-        iterate();
-        createViewport();
         print();
     }
 }
